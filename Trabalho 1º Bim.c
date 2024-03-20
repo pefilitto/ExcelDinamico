@@ -7,46 +7,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-
-struct matesp{
-	int lin;
-	char col;
-	char campo[50];
-	struct matesp *proxcol, *proxlin;
-};
-typedef struct matesp MatEsp;
-
-struct listalin{
-	int linha;
-	struct listalin *prox;
-	MatEsp *cabecalin;
-};
-typedef struct listalin ListaLin;
-
-struct listacol{
-  	char coluna;
-  	struct listacol *prox; 
-	MatEsp *cabecacol;
-};
-typedef struct listacol ListaCol;
-
-struct planilha{
-	ListaCol *pCaixaCol;
-	ListaLin *pCaixaLin;
-};
-typedef struct planilha Planilha;
-
-struct intervalo{
-	int linIni, linFinal;
-	char colIni, colFinal;
-};
-typedef struct intervalo Intervalo;
-
-struct Reg{
-	int lin;
-	char col, campo[50];	
-};
-typedef struct Reg TpReg;
+#include "TAD.h"
 
 void infoEsq(int n, int info, char s_info[])
 {
@@ -96,6 +57,13 @@ void desenhaTela(int lin, int col)
     }
 }
 
+ListaGen * criaT(char info[]){
+	ListaGen *L = (ListaGen*)malloc(sizeof(ListaGen));
+	L -> terminal = 1;
+	strcpy(L -> no.info, info);
+	return L;
+}
+
 ListaLin * criaCaixaListaLin(int linha){
 	ListaLin *caixa = (ListaLin*)malloc(sizeof(ListaLin));
 	caixa -> linha = linha;
@@ -119,6 +87,46 @@ MatEsp * criaCaixaMatEsp(int lin, char col, char info[]){
 	strcpy(caixa -> campo, info);
 	caixa -> proxcol = caixa -> proxlin = NULL;
 	return caixa;
+}
+
+char Nula(ListaGen *L){
+	return L == NULL;
+}
+
+char Tail(ListaGen *L){
+	return !Nula(L) && L -> no.lista.cauda;
+}
+
+char Head(ListaGen *L){
+	return !Nula(L) && L -> no.lista.cabeca;
+}
+
+char Atomo(ListaGen *L){
+	return !Nula(L) && L -> terminal == 1;
+}
+
+void exibeListaGen(ListaGen *L){
+	if(Atomo(L)){
+		printf("%s", L -> no.info);
+	}
+	else{
+		exibeListaGen(Head(L));
+		exibeListaGen(Tail(L));
+	}
+}
+
+ListaGen * Cons(ListaGen * H, ListaGen * T){
+	ListaGen *L;
+	if(Atomo(T)){
+		return NULL;	
+	} 
+	else{
+		L = (ListaGen*)malloc(sizeof(ListaGen));
+		L -> terminal = 0;
+		L -> no.lista.cabeca = H;
+		L -> no.lista.cauda = T;
+	}
+	return L;
 }
 
 void verificaOcupado(Planilha *p, int lin, char col, MatEsp * * aux) {
@@ -355,45 +363,6 @@ void exibir(Planilha *p, int lin, char col) {
     }
 }
 
-void gravarPlanilhaArquivo(Planilha *p, char nomeArq[]){
-	TpReg reg;
-	int i, j;
-	MatEsp *aux;
-	FILE *ptr = fopen(nomeArq, "wb");
-	
-	if(ptr == NULL)
-		printf("Erro ao criar arquivo!");
-	else{
-		for(i = 1; i <= 100; i++){
-			for(j = 'A'; j <= 'Z'; j++){
-				verificaOcupado(p, i, j, &aux);
-				if(aux != NULL){
-					reg.lin = aux -> lin;
-					reg.col = aux -> col;
-					strcpy(reg.campo, aux -> campo);
-					fwrite(&reg, sizeof(TpReg), 1, ptr);
-				}
-			}
-		}
-	}
-	fclose(ptr);
-}
-
-void abrirPlanilhaArquivo(Planilha *p, char nomeArq[]){
-	TpReg reg;
-	int i, j;
-	MatEsp *aux;
-	FILE *ptr = fopen(nomeArq, "rb");
-	
-	fread(&reg, sizeof(TpReg), 1, ptr);
-	while(!feof(ptr)){
-		gravaInformacao(&p, reg.lin, reg.col, reg.campo);
-		
-		fread(&reg, sizeof(TpReg), 1, ptr);
-	}
-	fclose(ptr);
-}
-
 void insereListaLin(ListaLin * * pCaixa, int lin, ListaLin * * aux){
 	ListaLin *antL, *auxL, *nova;
 	if(*pCaixa == NULL){ 
@@ -509,6 +478,45 @@ void gravaInformacao(Planilha **p, int lin, char col, char info[]) {
             ant->proxlin = nova;
         }
     }
+}
+
+void abrirPlanilhaArquivo(Planilha *p, char nomeArq[]){
+	TpReg reg;
+	int i, j;
+	MatEsp *aux;
+	FILE *ptr = fopen(strcat(nomeArq, ".dat"), "rb");
+	
+	fread(&reg, sizeof(TpReg), 1, ptr);
+	while(!feof(ptr)){
+		gravaInformacao(&p, reg.lin, reg.col, reg.campo);
+		
+		fread(&reg, sizeof(TpReg), 1, ptr);
+	}
+	fclose(ptr);
+}
+
+void gravarPlanilhaArquivo(Planilha *p, char nomeArq[]){
+	TpReg reg;
+	int i, j;
+	MatEsp *aux;
+	FILE *ptr = fopen(strcat(nomeArq, ".dat"), "wb");
+	
+	if(ptr == NULL)
+		printf("Erro ao criar arquivo!");
+	else{
+		for(i = 1; i <= 100; i++){
+			for(j = 'A'; j <= 'Z'; j++){
+				verificaOcupado(p, i, j, &aux);
+				if(aux != NULL){
+					reg.lin = aux -> lin;
+					reg.col = aux -> col;
+					strcpy(reg.campo, aux -> campo);
+					fwrite(&reg, sizeof(TpReg), 1, ptr);
+				}
+			}
+		}
+	}
+	fclose(ptr);
 }
 
 Planilha * inicia(){
