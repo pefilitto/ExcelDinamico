@@ -57,77 +57,7 @@ void desenhaTela(int lin, int col)
     }
 }
 
-ListaGen * criaT(char info[]){
-	ListaGen *L = (ListaGen*)malloc(sizeof(ListaGen));
-	L -> terminal = 1;
-	strcpy(L -> no.info, info);
-	return L;
-}
-
-ListaLin * criaCaixaListaLin(int linha){
-	ListaLin *caixa = (ListaLin*)malloc(sizeof(ListaLin));
-	caixa -> linha = linha;
-	caixa -> cabecalin = NULL;
-	caixa -> prox = NULL;
-	return caixa;
-}
-
-ListaCol * criaCaixaListaCol(char coluna){
-	ListaCol *caixa = (ListaCol*)malloc(sizeof(ListaCol));
-	caixa -> coluna = coluna;
-	caixa -> cabecacol = NULL;
-	caixa -> prox = NULL;
-	return caixa;
-}
-
-MatEsp * criaCaixaMatEsp(int lin, char col, char info[]){
-	MatEsp *caixa = (MatEsp*)malloc(sizeof(MatEsp));
-	caixa -> lin = lin;
-	caixa -> col = col;
-	strcpy(caixa -> campo, info);
-	caixa -> proxcol = caixa -> proxlin = NULL;
-	return caixa;
-}
-
-char Nula(ListaGen *L){
-	return L == NULL;
-}
-
-char Tail(ListaGen *L){
-	return !Nula(L) && L -> no.lista.cauda;
-}
-
-char Head(ListaGen *L){
-	return !Nula(L) && L -> no.lista.cabeca;
-}
-
-char Atomo(ListaGen *L){
-	return !Nula(L) && L -> terminal == 1;
-}
-
-void exibeListaGen(ListaGen *L){
-	if(Atomo(L)){
-		printf("%s", L -> no.info);
-	}
-	else{
-		exibeListaGen(Head(L));
-		exibeListaGen(Tail(L));
-	}
-}
-
-ListaGen * Cons(ListaGen * H, ListaGen * T){
-	ListaGen *L;
-	if(Atomo(T)){
-		return NULL;	
-	} 
-	else{
-		L = (ListaGen*)malloc(sizeof(ListaGen));
-		L -> terminal = 0;
-		L -> no.lista.cabeca = H;
-		L -> no.lista.cauda = T;
-	}
-	return L;
-}
+float constroiListaGen(Planilha *P, ListaGen * * L, char equacao[]);
 
 void verificaOcupado(Planilha *p, int lin, char col, MatEsp * * aux) {
 	ListaLin *auxL = p -> pCaixaLin;
@@ -148,7 +78,7 @@ void verificaOcupado(Planilha *p, int lin, char col, MatEsp * * aux) {
 }
 
 int SUM(MatEsp * celulaIni, MatEsp * celulaFinal){
-	int soma = 0;
+	float soma = 0.0;
 	MatEsp *aux = celulaIni;
 	if(celulaIni -> lin == celulaFinal -> lin){
 		while(aux != celulaFinal){
@@ -170,7 +100,8 @@ int SUM(MatEsp * celulaIni, MatEsp * celulaFinal){
 }
 
 int AVG(MatEsp * celulaIni, MatEsp * celulaFinal){
-	int media = 0, soma = 0, cont = 0;
+	int soma = 0, cont = 0;
+	float media = 0.0;
 	MatEsp *aux = celulaIni;
 	if(celulaIni -> lin == celulaFinal -> lin){
 		while(aux != celulaFinal){
@@ -197,7 +128,7 @@ int AVG(MatEsp * celulaIni, MatEsp * celulaFinal){
 
 int MAX(MatEsp * celulaIni, MatEsp * celulaFinal){
 	MatEsp *aux = celulaIni;
-	int maior = 0;
+	float maior = 0.0;
 	
 	if(celulaIni -> lin == celulaFinal -> lin){
 		while(aux != celulaFinal){
@@ -222,7 +153,7 @@ int MAX(MatEsp * celulaIni, MatEsp * celulaFinal){
 
 int MIN(MatEsp * celulaIni, MatEsp * celulaFinal){
 	MatEsp *aux = celulaIni;
-	int menor = 9999;
+	float menor = 9999.0;
 	
 	if(celulaIni -> lin == celulaFinal -> lin){
 		while(aux != celulaFinal){
@@ -291,10 +222,116 @@ Intervalo intervaloCelulas(char * formula){
     return limites;
 }
 
-int CalculaFormula(Planilha *p, int lin, char col, char * formula){
-	int i=0, resultado;
+void insereListaEncadeada(ListaEncadeada * * L, char info[]){
+	ListaEncadeada *nova, *ant, *aux;
+	
+	nova = (ListaEncadeada *)malloc(sizeof(ListaEncadeada));
+	strcpy(nova -> info, info);
+	nova -> prox = NULL;
+	
+	if(*L == NULL){
+		*L = nova;
+	} 
+	else{
+		aux = *L;
+		ant = NULL;
+		while(aux != NULL){
+			ant = aux;
+			aux = aux -> prox;
+		}
+		
+		ant -> prox = nova;
+	}
+}
+
+int prioridade(char operador){
+	switch(operador){
+		case '+':
+		case '-':
+			return 1;
+		
+		case '*':
+		case '/':
+			return 2;
+	}
+}
+
+float calculaEquacao(ListaGen * caixa){
+	PilhaOperador *POperador;
+	PilhaValor *PValor;
+	initPOperador(&POperador); initPValor(&PValor);
+	ListaGen *aux, *no;
+	char op;
+	float resultado, val1, val2;
+	
+	while(caixa != NULL){
+		if(caixa -> terminal == 'V'){
+			pushValor(&PValor, caixa -> no.valor);	
+		}
+		else{
+			if(caixa -> terminal == 'V'){
+				while(!isEmptyPilhaOperador(POperador)){
+					popOperador(&POperador, &op);
+					popValor(&PValor, &val1);
+					popValor(&PValor, &val2);				
+					switch(op){
+						case '+':
+		                    pushValor(&PValor, val1 + val2);
+		                break;
+		                case '-':
+		                    pushValor(&PValor, val1 - val2);
+		                break;
+		                case '*':
+		                    pushValor(&PValor, val1 * val2);
+		                break;
+		                case '/':
+		                    pushValor(&PValor, val1 / val2);
+		                break;
+					}
+				}
+			}
+			pushOperador(&POperador, caixa -> no.operador);
+		}
+		caixa = caixa -> cauda;
+	}
+				
+	
+	while (!isEmptyPilhaOperador(POperador)) {
+        popOperador(&POperador, &op);
+		popValor(&PValor, &val1);
+		popValor(&PValor, &val2);				
+		switch(op){
+			case '+':
+                pushValor(&PValor, val1 + val2);
+            break;
+            case '-':
+                pushValor(&PValor, val1 - val2);
+            break;
+            case '*':
+                pushValor(&PValor, val1 * val2);
+            break;
+            case '/':
+                pushValor(&PValor, val1 / val2);
+            break;
+		}
+    }
+    
+    popValor(&PValor, &resultado);
+    
+    free(POperador->topo);
+    free(PValor->topo);
+    free(POperador);
+    free(PValor);
+    
+    return resultado;
+}
+
+float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
+	int i=0;
+	float resultado;
 	MatEsp *celulaIni, *celulaFinal;
 	Intervalo intervalo;
+	ListaGen *L = NULL;
 	
 	if (strncmp(formula, "=SUM(", 5) == 0) {
 	    formula += strlen("=SUM(");
@@ -331,7 +368,268 @@ int CalculaFormula(Planilha *p, int lin, char col, char * formula){
         verificaOcupado(p, intervalo.linFinal, intervalo.colFinal, &celulaFinal);
         
 		resultado = MIN(celulaIni, celulaFinal);
-    } 
+    }
+    else{
+    	resultado = constroiListaGen(p, &L, formula);
+    }
+	return resultado;
+}
+
+ListaEncadeada * separaTermos(Planilha *P, char equacao[]){
+	int i, valor, j, k, fim = 0;
+	float resultadoFormula;
+	char celula[5], valorStr[3], formulaStr[50], linCelula[10], resultadoFormulaStr[5], auxSinal[2], auxParenteses[2];
+	char sinal;
+	MatEsp *aux;
+	ListaEncadeada *L = NULL;
+	for(i = 0; i < strlen(equacao); i++){
+		if(equacao[i] == '=') i++;
+		if(equacao[i] != ' '){			
+			//Uma formula ou uma celula
+			if(equacao[i] >= 'A'){
+				
+				//Uma celula
+				if(isdigit(equacao[i+1])){
+					j = 0;
+					fim = 0;
+					while(equacao[i] != ' ' && !fim){
+						if(equacao[i] == '\0' || equacao[i] == ')') 
+							fim = 1;
+						else{
+							celula[j] = equacao[i]; //A100\0
+							i++;
+							j++;
+						}						
+					}
+					celula[j] = '\0';
+					
+					j = 1;
+					k = 0;
+					while(celula[j] != '\0'){
+						linCelula[k] = celula[j];
+						j++;
+						k++;
+					}
+					linCelula[k] = '\0';
+					verificaOcupado(P, atoi(linCelula), celula[0], &aux);
+					insereListaEncadeada(&L, aux -> campo);
+				}
+				else{
+					
+					//Uma formula
+					if(equacao[i+1] >= 'A' && equacao[i] != '0'){
+						k = 0;
+						fim = 0;
+						while(equacao[i] != ' ' && !fim){
+							if(k == 0){
+								formulaStr[k] = '=';
+								k++;
+							}
+							if(equacao[i] == '\0')
+								fim = 1;
+							else{
+								formulaStr[k] = equacao[i];
+								i++;
+								k++;	
+							}
+						}
+						formulaStr[k] = '\0';	
+						
+						resultadoFormula = CalculaFormula(P, 0, ' ', formulaStr);
+						sprintf(resultadoFormulaStr, "%.2f", resultadoFormula);
+						insereListaEncadeada(&L, resultadoFormulaStr);					
+					}
+				}			
+			}
+			
+			//para tratar o caso (10 - C4), por exemplo
+			else if(equacao[i] == '('){
+				while(i < strlen(equacao) && equacao[i] != ')'){
+					if(equacao[i] == '(' || equacao[i] == ')'){
+						if(equacao[i] == '('){
+							auxParenteses[0] = '(';
+							auxParenteses[1] = '\0';
+						}
+						else{
+							auxParenteses[0] = ')';
+							auxParenteses[1] = '\0';
+						}
+						insereListaEncadeada(&L, auxParenteses);
+						i++;
+					}
+					if(equacao[i] != ' '){
+						//Um numero depois do parenteses
+						if(isdigit(equacao[i])){
+							k = 0;
+							while(equacao[i] != ' ' && equacao[i] != ')'){
+								valorStr[k] = equacao[i];
+								i++;
+								k++;
+							}
+							valorStr[k] = '\0';
+							insereListaEncadeada(&L, valorStr);
+						}
+						else if(equacao[i] == '+' || equacao[i] == '-' || equacao[i] == '*' || equacao[i] == '/'){
+							auxSinal[0] = equacao[i];
+							auxSinal[1] = '\0';
+							insereListaEncadeada(&L, auxSinal);
+						}
+						else{
+							//pode ser uma celula ou um MAX, MIN, etc...
+							if(equacao[i] != '\0' && !isdigit(equacao[i]) && !isdigit(equacao[i+1])){
+								k = 0;
+								fim = 0;
+								while(equacao[i] != ' ' && !fim){
+									if(k == 0){
+										formulaStr[k] = '=';
+										k++;
+									}
+									if(equacao[i] == '\0')
+										fim = 1;
+									else{
+										formulaStr[k] = equacao[i];
+										i++;
+										k++;	
+									}
+								}
+								formulaStr[k] = '\0';	
+								
+								resultadoFormula = CalculaFormula(P, 0, ' ', formulaStr);
+								sprintf(resultadoFormulaStr, "%.2f", resultadoFormula);
+								insereListaEncadeada(&L, resultadoFormulaStr);
+							}
+							
+							//Celula
+							if(!isdigit(equacao[i]) && isdigit(equacao[i+1])){
+								j = 0;
+								fim = 0;
+								while(equacao[i] != ' ' && !fim){
+									if(equacao[i] == '\0' || equacao[i] == ')')  
+										fim = 1;
+									else{
+										celula[j] = equacao[i]; //A100\0
+										i++;
+										j++;
+									}						
+								}
+								celula[j] = '\0';
+								
+								j = 1;
+								k = 0;
+								while(celula[j] != '\0'){
+									linCelula[k] = celula[j];
+									j++;
+									k++;
+								}
+								linCelula[k] = '\0';
+								verificaOcupado(P, atoi(linCelula), celula[0], &aux);
+								insereListaEncadeada(&L, aux -> campo);
+							}
+						}
+					}
+					i++;					
+				}
+			}
+			
+			else if(equacao[i] == '+' || equacao[i] == '-' || equacao[i] == '*' || equacao[i] == '/'){
+				auxSinal[0] = equacao[i];
+				auxSinal[1] = '\0';
+				insereListaEncadeada(&L, auxSinal);
+			}
+			else if(isdigit(equacao[i])){
+				k = 0;
+				while(equacao[i] != ' ' && equacao[i] != ')'){
+					valorStr[k] = equacao[i];
+					i++;
+					k++;
+				}
+				valorStr[k] = '\0';
+				insereListaEncadeada(&L, valorStr);
+			}
+		}				
+	}
+	return L;
+}
+
+float constroiListaGen(Planilha *P, ListaGen * * L, char equacao[]){
+	Pilha *P1, *P2;
+	char direcao = 'H';
+	float resultado;
+	ListaGen *nova, *atual;
+	ListaEncadeada *lista, *aux;
+	init(&P1); init(&P2);
+	int i = 26;
+	
+	lista = separaTermos(P, equacao);
+	
+	while(lista != NULL){
+		if(lista -> info[0] != '(' && lista -> info[0] != ')'){
+			if(isdigit(lista -> info[0])){
+				nova = ConsV(NULL, NULL, lista -> info);
+			}
+			else if(lista -> info[0] == '+' || lista -> info[0] == '-' || lista -> info[0] == '*' || lista -> info[0] == '/'){
+				nova = ConsO(NULL, NULL, lista -> info[0]);
+			}
+			else{
+				nova = ConsF(NULL, NULL, lista -> info);
+			}
+			
+			if(*L == NULL){
+				*L = atual = nova;
+				push(&P2, atual);
+			}
+			else{
+				if(direcao == 'H'){
+					atual -> cauda = nova;
+					atual = atual -> cauda;
+				}
+				else{
+					atual -> cabeca = nova;
+					atual = atual -> cabeca;
+				}
+				direcao = 'H';
+			}
+		}
+		else if(lista -> info[0] == '('){
+			nova = ConsV(NULL, NULL, "0");
+			if(*L == NULL){
+				*L = atual = nova;
+			}
+			else{
+				atual -> cauda = nova;
+				atual = atual -> cauda;
+				push(&P1, atual);
+			}
+			push(&P2, atual);
+			direcao = 'V';
+		}
+		else{
+			pop(&P1, &atual);
+		}
+		aux = lista;
+		lista = lista -> prox;
+		free(aux);
+	}
+	
+	while(!isEmpty(P2)){
+		pop(&P2, &atual);
+		if(atual != *L){
+			gotoxy(1, i);
+			printf("Info cabeca: %f", atual -> cabeca -> no.valor);
+			atual -> no.valor = calculaEquacao(atual -> cabeca);
+			gotoxy(1, i);
+			printf("Valor no primeiro if: %.1f", atual -> no.valor);
+			i++;
+		}
+		else{
+			gotoxy(1, i);
+			printf("Info cabeca: %f", atual -> no.valor);
+			resultado = calculaEquacao(atual);
+			gotoxy(1, i);
+			printf("Valor no segundo if: %.1f", resultado);
+			i++;
+		}
+	}
 	return resultado;
 }
 
@@ -438,9 +736,10 @@ void gravaInformacao(Planilha **p, int lin, char col, char info[]) {
     insereListaCol(&(*p)->pCaixaCol, col, &auxC);    	   
 
     verificaOcupado(*p, lin, col, &aux);
-    // Caso haja uma caixinha na posição especificada, o valor contido nela será substituído
-    if (aux != NULL)
-        strcpy(aux->campo, info);
+
+    if (aux != NULL){
+    	strcpy(aux->campo, info);	
+    }
     else {
     	nova = criaCaixaMatEsp(lin, col, info);
         
@@ -604,7 +903,8 @@ void iniciaExcel(Planilha * * p)
 			{
                 case 60: //Alterar celula (F2)
                 	gotoxy(1, 2);
-                	scanf("%s", &texto);
+                	fflush(stdin);
+                	scanf(" %[^\n]", texto);
                 	gravaInformacao(&(*p), lin+l-1, col+c-1, texto);
                 break;    
                 
