@@ -38,7 +38,7 @@ void desenhaTela(int lin, int col)
     textcolor(0);
     
     //desenha a coluna esq 1..20
-    for (i=4; i<=23; i++)
+    for (i=5; i<=23; i++)
     {
         gotoxy(1,i);
         infoEsq(3,lin,slin);
@@ -49,7 +49,7 @@ void desenhaTela(int lin, int col)
     j=4;
     for (i=1; i<=8; i++)
     {
-        gotoxy(j,3);
+        gotoxy(j,4);
         infoCenter(col,scol);
         printf("%s",scol);
         j=j+9;
@@ -264,66 +264,71 @@ float calculaEquacao(ListaGen * caixa){
 	char op;
 	float resultado, val1, val2;
 	
-	while(caixa != NULL){
+	while(!Nula(caixa)){
 		if(caixa -> terminal == 'V'){
-			pushValor(&PValor, caixa -> no.valor);	
+			pushValor(&PValor, caixa -> no.valor);
 		}
-		else{
-			if(caixa -> terminal == 'V'){
-				while(!isEmptyPilhaOperador(POperador)){
+		if(caixa -> terminal == 'O'){
+			if(!isEmptyPilhaOperador(POperador)){
+				if(prioridade(caixa -> no.valor) <= prioridade(POperador -> topo -> operador)){
 					popOperador(&POperador, &op);
 					popValor(&PValor, &val1);
-					popValor(&PValor, &val2);				
+					popValor(&PValor, &val2);
+					
 					switch(op){
 						case '+':
-		                    pushValor(&PValor, val1 + val2);
-		                break;
-		                case '-':
-		                    pushValor(&PValor, val1 - val2);
-		                break;
-		                case '*':
-		                    pushValor(&PValor, val1 * val2);
-		                break;
-		                case '/':
-		                    pushValor(&PValor, val1 / val2);
-		                break;
+							pushValor(&PValor, val2+val1);
+						break;
+						
+						case '-':
+							pushValor(&PValor, val2-val1);
+						break;
+						
+						case '/':
+							pushValor(&PValor, val2/val1);
+						break;
+						
+						case '*':
+							pushValor(&PValor, val2*val1);
+						break;
 					}
+					
+					pushOperador(&POperador, caixa -> no.operador);
 				}
 			}
-			pushOperador(&POperador, caixa -> no.operador);
+			else pushOperador(&POperador, caixa -> no.operador);			
 		}
 		caixa = caixa -> cauda;
 	}
-				
 	
-	while (!isEmptyPilhaOperador(POperador)) {
-        popOperador(&POperador, &op);
-		popValor(&PValor, &val1);
-		popValor(&PValor, &val2);				
-		switch(op){
-			case '+':
-                pushValor(&PValor, val1 + val2);
-            break;
-            case '-':
-                pushValor(&PValor, val1 - val2);
-            break;
-            case '*':
-                pushValor(&PValor, val1 * val2);
-            break;
-            case '/':
-                pushValor(&PValor, val1 / val2);
-            break;
+	if(Nula(caixa)){
+		while(!isEmptyPilhaOperador(POperador)){
+			popOperador(&POperador, &op);
+			popValor(&PValor, &val1);
+			popValor(&PValor, &val2);
+			
+			switch(op){
+				case '+':
+					pushValor(&PValor, val2+val1);
+				break;
+				
+				case '-':
+					pushValor(&PValor, val2-val1);
+				break;
+				
+				case '/':
+					pushValor(&PValor, val2/val1);
+				break;
+				
+				case '*':
+					pushValor(&PValor, val2*val1);
+				break;
+			}
 		}
-    }
-    
-    popValor(&PValor, &resultado);
-    
-    free(POperador->topo);
-    free(PValor->topo);
-    free(POperador);
-    free(PValor);
-    
-    return resultado;
+	}
+	
+	popValor(&PValor, &resultado);
+	return resultado;
 }
 
 float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
@@ -614,20 +619,10 @@ float constroiListaGen(Planilha *P, ListaGen * * L, char equacao[]){
 	while(!isEmpty(P2)){
 		pop(&P2, &atual);
 		if(atual != *L){
-			gotoxy(1, i);
-			printf("Info cabeca: %f", atual -> cabeca -> no.valor);
 			atual -> no.valor = calculaEquacao(atual -> cabeca);
-			gotoxy(1, i);
-			printf("Valor no primeiro if: %.1f", atual -> no.valor);
-			i++;
 		}
 		else{
-			gotoxy(1, i);
-			printf("Info cabeca: %f", atual -> no.valor);
 			resultado = calculaEquacao(atual);
-			gotoxy(1, i);
-			printf("Valor no segundo if: %.1f", resultado);
-			i++;
 		}
 	}
 	return resultado;
@@ -635,7 +630,7 @@ float constroiListaGen(Planilha *P, ListaGen * * L, char equacao[]){
 
 void exibir(Planilha *p, int lin, char col) {
     MatEsp *aux;
-    int i, colTela, linTela = 4, resultado;
+    int i, colTela, linTela = 5, resultado;
 	char j, resultadoString[20];
 	
     for (i = lin; i <= lin+19; i++) {
@@ -829,6 +824,7 @@ void iniciaExcel(Planilha * * p)
 {
     char key;
     char m[100], texto[100], nomeArq[20];
+    MatEsp *aux;
     
     int c,l,col,lin;
 
@@ -840,7 +836,7 @@ void iniciaExcel(Planilha * * p)
     //coordenadas da matriz
     col=65; //letra A
     lin=1;
-    gotoxy(c*9-9+4,l+3);
+    gotoxy(c*9-9+4,l+4);
     printf("         ");
 
     do
@@ -892,7 +888,7 @@ void iniciaExcel(Planilha * * p)
 			printf("%c%d: ", col+c-1, lin+l-1);
             
             
-            gotoxy(c*9-9+4,l+3);
+            gotoxy(c*9-9+4,l+4);
             textbackground(3);
             textcolor(0);
             printf("         "); //desenhar o conteudo da celula atual a partir da matriz esparsa         	
@@ -903,6 +899,11 @@ void iniciaExcel(Planilha * * p)
 			{
                 case 60: //Alterar celula (F2)
                 	gotoxy(1, 2);
+                	verificaOcupado(*p, lin+l-1, col+c-1, &aux);
+                	if(aux != NULL){
+                		printf("%s", aux -> campo);
+                	}
+                	
                 	fflush(stdin);
                 	scanf(" %[^\n]", texto);
                 	gravaInformacao(&(*p), lin+l-1, col+c-1, texto);

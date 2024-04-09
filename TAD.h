@@ -178,7 +178,7 @@ void pushValor(PilhaValor * * P, float valor){
 }
 
 void pushOperador(PilhaOperador * * P, char operador){
-	NoPilhaOperador *novoNo = (NoPilhaOperador *)malloc(sizeof(PilhaOperador));
+	NoPilhaOperador *novoNo = (NoPilhaOperador *)malloc(sizeof(NoPilhaOperador));
 	novoNo -> operador = operador;
 	novoNo -> prox = (*P) -> topo;
 	(*P) -> topo = novoNo;
@@ -226,7 +226,7 @@ ListaGen * ConsV(ListaGen * H, ListaGen * T, char info[]){ //Cria uma caixinha q
 ListaGen * ConsO(ListaGen * H, ListaGen * T, char info){ //Cria uma caixinha que ira armazenar um operador
 	ListaGen *L;
 	L = (ListaGen*)malloc(sizeof(ListaGen));
-	L -> terminal = 'C';
+	L -> terminal = 'O';
 	L -> cabeca = H;
 	L -> cauda = T;
 	L -> no.operador = info;
