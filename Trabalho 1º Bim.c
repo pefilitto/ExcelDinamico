@@ -4,9 +4,9 @@
 #include <winbase.h>
 #include <wincon.h>
 #include <windows.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "TAD.h"
 
 void infoEsq(int n, int info, char s_info[])
@@ -38,7 +38,7 @@ void desenhaTela(int lin, int col)
     textcolor(0);
     
     //desenha a coluna esq 1..20
-    for (i=5; i<=23; i++)
+    for (i=5; i<=24; i++)
     {
         gotoxy(1,i);
         infoEsq(3,lin,slin);
@@ -187,7 +187,7 @@ Intervalo intervaloCelulas(char * formula){
     int linIniIndex = 0, linFinalIndex = 0;
     int i = 0;
 
-    while (formula[i] != ')' && formula[i] != '\0') {
+    while (i < strlen(formula) && formula[i] != ')' && formula[i] != '\0' && formula[i] != ' ') {
         if (formula[i] != ':' && (formula[i] >= 'A' && formula[i] <= 'Z')) {
             if (limites.colIni == '0' && limites.colFinal == '0') {
                 limites.colIni = formula[i];
@@ -256,83 +256,82 @@ int prioridade(char operador){
 	}
 }
 
-float calculaEquacao(ListaGen * caixa){
-	PilhaOperador *POperador;
-	PilhaValor *PValor;
-	initPOperador(&POperador); initPValor(&PValor);
-	ListaGen *aux, *no;
-	char op;
-	float resultado, val1, val2;
-	
-	while(!Nula(caixa)){
-		if(caixa -> terminal == 'V'){
-			pushValor(&PValor, caixa -> no.valor);
-		}
-		if(caixa -> terminal == 'O'){
-			if(!isEmptyPilhaOperador(POperador)){
-				if(prioridade(caixa -> no.valor) <= prioridade(POperador -> topo -> operador)){
-					popOperador(&POperador, &op);
-					popValor(&PValor, &val1);
-					popValor(&PValor, &val2);
-					
-					switch(op){
-						case '+':
-							pushValor(&PValor, val2+val1);
-						break;
-						
-						case '-':
-							pushValor(&PValor, val2-val1);
-						break;
-						
-						case '/':
-							pushValor(&PValor, val2/val1);
-						break;
-						
-						case '*':
-							pushValor(&PValor, val2*val1);
-						break;
-					}
-					
-					pushOperador(&POperador, caixa -> no.operador);
-				}
-			}
-			else pushOperador(&POperador, caixa -> no.operador);			
-		}
-		caixa = caixa -> cauda;
-	}
-	
-	if(Nula(caixa)){
-		while(!isEmptyPilhaOperador(POperador)){
-			popOperador(&POperador, &op);
-			popValor(&PValor, &val1);
-			popValor(&PValor, &val2);
-			
-			switch(op){
-				case '+':
-					pushValor(&PValor, val2+val1);
-				break;
-				
-				case '-':
-					pushValor(&PValor, val2-val1);
-				break;
-				
-				case '/':
-					pushValor(&PValor, val2/val1);
-				break;
-				
-				case '*':
-					pushValor(&PValor, val2*val1);
-				break;
-			}
-		}
-	}
-	
-	popValor(&PValor, &resultado);
-	return resultado;
+float calculaEquacao(ListaGen * caixa) {
+    PilhaOperador *POperador;
+    PilhaValor *PValor;
+    initPOperador(&POperador); 
+    initPValor(&PValor);
+    
+    char op;
+    float resultado, val1, val2;
+    
+    while(!Nula(caixa)) {
+        if(caixa->terminal == 'V') {
+            pushValor(&PValor, caixa->no.valor);
+        }
+        
+        if(caixa->terminal == 'O') {
+            while(!isEmptyPilhaOperador(POperador) && prioridade(caixa->no.operador) <= prioridade(POperador->topo->operador)) {
+                popOperador(&POperador, &op);
+                popValor(&PValor, &val1);
+                popValor(&PValor, &val2);
+                
+                switch(op) {
+                    case '+':
+                        pushValor(&PValor, val2 + val1);
+                        break;
+                        
+                    case '-':
+                        pushValor(&PValor, val2 - val1);
+                        break;
+                        
+                    case '/':
+                        pushValor(&PValor, val2 / val1);
+                        break;
+                        
+                    case '*':
+                        pushValor(&PValor, val2 * val1);
+                        break;
+                }
+            }
+            
+            pushOperador(&POperador, caixa->no.operador);
+        }
+        
+        caixa = caixa->cauda;
+    }
+    
+    while(!isEmptyPilhaOperador(POperador)) {
+        popOperador(&POperador, &op);
+        popValor(&PValor, &val1);
+        popValor(&PValor, &val2);
+        
+        switch(op) {
+            case '+':
+                pushValor(&PValor, val2 + val1);
+                break;
+                
+            case '-':
+                pushValor(&PValor, val2 - val1);
+                break;
+                
+            case '/':
+                pushValor(&PValor, val2 / val1);
+                break;
+                
+            case '*':
+                pushValor(&PValor, val2 * val1);
+                break;
+        }
+    }
+    
+    popValor(&PValor, &resultado);
+    return resultado;
 }
 
+
 float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
-	int i=0;
+	int i=0, isGrafico = 1;
 	float resultado;
 	MatEsp *celulaIni, *celulaFinal;
 	Intervalo intervalo;
@@ -344,7 +343,9 @@ float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
 		    
         verificaOcupado(p, intervalo.linIni, intervalo.colIni, &celulaIni);
         verificaOcupado(p, intervalo.linFinal, intervalo.colFinal, &celulaFinal);
-
+        
+        isGrafico = 0;
+    
         resultado = SUM(celulaIni, celulaFinal);
     } 
 	else if (strncmp(formula, "=AVG(", 5) == 0) {
@@ -353,6 +354,8 @@ float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
 		    
         verificaOcupado(p, intervalo.linIni, intervalo.colIni, &celulaIni);
         verificaOcupado(p, intervalo.linFinal, intervalo.colFinal, &celulaFinal);
+        
+        isGrafico = 0;
         
         resultado = AVG(celulaIni, celulaFinal);        
     } 
@@ -363,6 +366,8 @@ float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
         verificaOcupado(p, intervalo.linIni, intervalo.colIni, &celulaIni);
         verificaOcupado(p, intervalo.linFinal, intervalo.colFinal, &celulaFinal);
         
+        isGrafico = 0;
+        
 		resultado = MAX(celulaIni, celulaFinal);
     } 
 	else if (strncmp(formula, "=MIN(", 5) == 0) {
@@ -371,6 +376,8 @@ float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
 		    
         verificaOcupado(p, intervalo.linIni, intervalo.colIni, &celulaIni);
         verificaOcupado(p, intervalo.linFinal, intervalo.colFinal, &celulaFinal);
+        
+        isGrafico = 0;
         
 		resultado = MIN(celulaIni, celulaFinal);
     }
@@ -813,6 +820,164 @@ void gravarPlanilhaArquivo(Planilha *p, char nomeArq[]){
 	fclose(ptr);
 }
 
+void verificaCelulas(Planilha *p, char str[], int *ok){
+	int i, j, k;
+	char colStr, linStr[4];
+	MatEsp *aux;
+	
+	*ok = 1;
+	for(i = 0; i < strlen(str); i++){
+		if(str[i] >= 'A' && isdigit(str[i+1])){
+			colStr = str[i];
+			
+			j = i + 1;
+			k = 0;
+			while(j < strlen(str) && str[j] != ':' && str[j] != ' ' && str[j] != ')'){
+				linStr[k] = str[j];
+				k++;
+				j++; 
+			}
+			linStr[k] = '\0';
+			
+			verificaOcupado(p, atoi(linStr), colStr, &aux);
+			if(aux == NULL)
+				*ok = 0;
+		}
+	}
+}
+
+Intervalo leIntervaloGrafico(char * formula){
+	Intervalo limites;
+    limites.linIni = 0;
+    limites.linFinal = 0;
+    limites.colIni = '0';
+    limites.colFinal = '0';
+
+    char linIniStr[4] = "", linFinalStr[4] = "";
+    int linIniIndex = 0, linFinalIndex = 0;
+    int i = 0;
+
+    while (i < strlen(formula) && formula[i] != '\0' && formula[i] != ' ') {
+        if (formula[i] != ':' && (formula[i] >= 'A' && formula[i] <= 'Z')) {
+            if (limites.colIni == '0' && limites.colFinal == '0') {
+                limites.colIni = formula[i];
+            } 
+			else {
+                limites.colFinal = formula[i];
+            }
+        }
+        if (formula[i] >= '0' && formula[i] <= '9') {
+            if (strcmp(linIniStr, "") == 0 && strcmp(linFinalStr, "") == 0) {
+                while (formula[i] != ':') {
+                    linIniStr[linIniIndex++] = formula[i];
+                    i++;
+                }
+            } 
+			else {
+                while (formula[i] != '\0') {
+                    linFinalStr[linFinalIndex++] = formula[i];
+                    i++;
+                }
+            }
+        }
+        i++;
+    }
+
+    if (linIniIndex > 0) {
+        limites.linIni = atoi(linIniStr);
+    }
+    if (linFinalIndex > 0) {
+        limites.linFinal = atoi(linFinalStr);
+    }
+    return limites;
+}
+
+void gerarGrafico(Planilha *p, char * intervalo){
+	textbackground(0);
+	textcolor(7);
+	system("cls");
+    
+    Intervalo limites = leIntervaloGrafico(intervalo);    
+    ListaGen *L = NULL;
+    
+    char cini = limites.colIni, cfim = limites.colFinal;
+    int linIni = limites.linIni, linFinal = limites.linFinal, i, j, k;
+    float n, maior = -9999.99, menor = 9999.99, qtdValores = (cfim - cini + 1) * 1.00, valor;
+    MatEsp *aux;
+    
+    gotoxy(15, 22);
+    for(i = cini; i <= cfim; i++){
+        verificaOcupado(p, linIni, i, &aux);
+        if(aux != NULL){
+            printf("%.8s  ", aux->campo);
+        }
+        if(strlen(aux->campo) < 8){
+            for(j = strlen(aux->campo); j < 8; j++){
+                printf(" ");
+            }
+        }
+    }
+    
+    for(i = linIni; i <= linFinal; i++){
+        for(j = cini; j <= cfim; j++){
+            verificaOcupado(p, i, j, &aux);
+            if(aux != NULL){
+                if(aux->campo[0] == '='){
+                    n = constroiListaGen(p, &L, aux->campo);
+                }
+                else{
+                    n = atof(aux->campo);
+                }
+                if(n > maior){
+                    maior = n;
+                }
+                if(n < menor){
+                    menor = n;
+                }
+            }
+        }
+    }
+    
+    gotoxy(10, 22);
+    n = maior / qtdValores;
+    for(i = 0; i < qtdValores; i++){
+        gotoxy(6, (21-3*i)-1);
+        printf("%.2f -", menor + n * i);
+    }
+    
+    for(i = linIni; i <= linFinal; i++){
+        for(j = cini; j <= cfim; j++){
+            verificaOcupado(p, i, j, &aux);
+            if(aux != NULL){
+                if(aux->campo[0] == '='){
+                    n = constroiListaGen(p, &L, aux->campo);
+                }
+                else{
+                    n = atof(aux->campo);
+                }
+                
+                valor = round((3 * qtdValores * n) / maior);
+                for(k = 22-valor; k < 22; k++){
+                    gotoxy(((3+11*(j-cini))+(i-linIni)) + 12,k);
+                    textcolor(2);
+                    printf("%c",219);
+                }
+            }
+        }
+    }
+    
+    for(i = linIni; i <= linFinal; i++){
+        verificaOcupado(p, i, cini, &aux);
+        gotoxy(5,23+(i-linIni));
+        if(aux!=NULL) {
+            textcolor((i-linIni)*2);
+            printf("%c ",219);
+            textcolor(15);
+            printf("%s",aux->campo);
+        }   
+    }
+}
+
 Planilha * inicia(){
 	Planilha *p = (Planilha*)malloc(sizeof(Planilha));
 	p -> pCaixaLin = NULL;
@@ -826,7 +991,7 @@ void iniciaExcel(Planilha * * p)
     char m[100], texto[100], nomeArq[20];
     MatEsp *aux;
     
-    int c,l,col,lin;
+    int c,l,col,lin,ok;
 
     textbackground(0);
     system("cls");
@@ -839,6 +1004,9 @@ void iniciaExcel(Planilha * * p)
     gotoxy(c*9-9+4,l+4);
     printf("         ");
 
+	gotoxy(1, 1);
+	printf("%c%d: ", col+c-1, lin+l-1);
+	
     do
     {
         key=getch();
@@ -906,7 +1074,21 @@ void iniciaExcel(Planilha * * p)
                 	
                 	fflush(stdin);
                 	scanf(" %[^\n]", texto);
-                	gravaInformacao(&(*p), lin+l-1, col+c-1, texto);
+                	if(texto[0] == '='){
+                		verificaCelulas(*p, texto, &ok);
+	                	if(ok)
+	                		gravaInformacao(&(*p), lin+l-1, col+c-1, texto);
+	                	else{
+	                		textcolor(15);          
+						    textbackground(4);
+							gotoxy(1, 3);            		
+						    printf("Por gentileza, certifique-se que as celulas sao existentes!\n");
+	                	}	
+                	}
+                	else{
+                		gravaInformacao(&(*p), lin+l-1, col+c-1, texto);
+                	}
+                	
                 break;    
                 
                 case 61: //Salvar planilha (F3)
@@ -919,6 +1101,13 @@ void iniciaExcel(Planilha * * p)
                 	gotoxy(1, 2);
                 	scanf("%s", &nomeArq);
                 	abrirPlanilhaArquivo(*p, nomeArq);
+                break;
+                
+                case 63: //Gerar Grafico (F5)
+                	gotoxy(1, 2);
+                	scanf("%s", texto);
+                	texto[strlen(texto) + 1] = '\0';
+                	gerarGrafico(*p, texto);
                 break;
             }        	
         }
