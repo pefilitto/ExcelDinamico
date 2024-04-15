@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "TAD.h"
 
 void infoEsq(int n, int info, char s_info[])
@@ -388,7 +389,7 @@ float CalculaFormula(Planilha *p, int lin, char col, char formula[]){
 }
 
 ListaEncadeada * separaTermos(Planilha *P, char equacao[]){
-	int i, valor, j, k, fim = 0;
+	int i, valor, j, k, fim = 0, resultado;
 	float resultadoFormula;
 	char celula[5], valorStr[3], formulaStr[50], linCelula[10], resultadoFormulaStr[5], auxSinal[2], auxParenteses[2];
 	char sinal;
@@ -424,6 +425,10 @@ ListaEncadeada * separaTermos(Planilha *P, char equacao[]){
 					}
 					linCelula[k] = '\0';
 					verificaOcupado(P, atoi(linCelula), celula[0], &aux);
+					if(aux -> campo[0] == '='){
+						resultado = CalculaFormula(P, aux -> lin, aux -> col, aux -> campo);
+						sprintf(aux -> campo, "%d", resultado);
+					}
 					insereListaEncadeada(&L, aux -> campo);
 				}
 				else{
@@ -923,7 +928,7 @@ void gerarGrafico(Planilha *p, char * intervalo){
             verificaOcupado(p, i, j, &aux);
             if(aux != NULL){
                 if(aux->campo[0] == '='){
-                    n = constroiListaGen(p, &L, aux->campo);
+                	n = CalculaFormula(p, i, j, aux -> campo);
                 }
                 else{
                     n = atof(aux->campo);
@@ -950,7 +955,7 @@ void gerarGrafico(Planilha *p, char * intervalo){
             verificaOcupado(p, i, j, &aux);
             if(aux != NULL){
                 if(aux->campo[0] == '='){
-                    n = constroiListaGen(p, &L, aux->campo);
+                    n = CalculaFormula(p, i, j, aux->campo);
                 }
                 else{
                     n = atof(aux->campo);
@@ -978,6 +983,29 @@ void gerarGrafico(Planilha *p, char * intervalo){
     }
 }
 
+void desenhaBorda(int x, int y) {
+    int i, j;
+    gotoxy(30, y);
+    printf("%c", 201);
+    for (i = 1; i < 55; i++) {
+        printf("%c", 205);
+    }
+    printf("%c", 187);
+    
+    for (i = 1; i < 25; i++) {
+        gotoxy(30, y + i);
+        printf("%c", 186);
+        gotoxy(85, y + i);
+        printf("%c", 186);
+    }
+    
+    gotoxy(30, y + 25);
+    printf("%c", 200);
+    for (i = 1; i < 55; i++) {
+        printf("%c", 205);
+    }
+    printf("%c", 188);
+}
 Planilha * inicia(){
 	Planilha *p = (Planilha*)malloc(sizeof(Planilha));
 	p -> pCaixaLin = NULL;
@@ -1100,14 +1128,22 @@ void iniciaExcel(Planilha * * p)
                 case 62: //Abrir planilha (F4)
                 	gotoxy(1, 2);
                 	scanf("%s", &nomeArq);
-                	abrirPlanilhaArquivo(*p, nomeArq);
+                	abrirPlanilhaArquivo(*p, nomeArq);              	
                 break;
                 
                 case 63: //Gerar Grafico (F5)
                 	gotoxy(1, 2);
                 	scanf("%s", texto);
                 	texto[strlen(texto) + 1] = '\0';
-                	gerarGrafico(*p, texto);
+                	verificaCelulas(*p, texto, &ok);
+                	if(ok)
+                		gerarGrafico(*p, texto);
+                	else{
+                		textcolor(15);          
+						textbackground(4);
+						gotoxy(1, 3);            		
+						printf("Por gentileza, certifique-se que as celulas sao existentes!\n");
+                	}
                 break;
             }        	
         }
@@ -1117,9 +1153,20 @@ void iniciaExcel(Planilha * * p)
 int main()
 {
 	Planilha *p;
-	gotoxy(50, 1);
+	desenhaBorda(10, 1);
+	gotoxy(49, 2);
 	printf("Bem vindo ao excel!");
-	gotoxy(45, 3);
+	gotoxy(49, 6);
+	printf("### INSTRUCOES ###");
+	gotoxy(47, 8);
+	printf("F2 - Gravar ou alterar");
+	gotoxy(48, 10);
+	printf("F3 - Salvar planilha");
+	gotoxy(49, 12);
+	printf("F4 - Abrir planilha");
+	gotoxy(48, 14);
+	printf("F5 - Gerar grafico");
+	gotoxy(45, 20);
 	printf("Digite enter para continuar");
 	getch();
 	p = inicia();
