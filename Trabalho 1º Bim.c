@@ -642,7 +642,8 @@ float constroiListaGen(Planilha *P, ListaGen * * L, char equacao[]){
 
 void exibir(Planilha *p, int lin, char col) {
     MatEsp *aux;
-    int i, colTela, linTela = 5, resultado;
+    int i, colTela, linTela = 5;
+    float resultado;
 	char j, resultadoString[20];
 	
     for (i = lin; i <= lin+19; i++) {
@@ -653,7 +654,7 @@ void exibir(Planilha *p, int lin, char col) {
             	if(aux -> campo[0] == '='){
             		resultado = CalculaFormula(p, aux -> lin, aux -> col, aux -> campo);
             		gotoxy(1, 26);
-					sprintf(resultadoString, "%d", resultado);
+					sprintf(resultadoString, "%.1f", resultado);
             		gotoxy(colTela, linTela);
             		printf("%s", resultadoString);	
             	}
@@ -792,13 +793,27 @@ void abrirPlanilhaArquivo(Planilha *p, char nomeArq[]){
 	MatEsp *aux;
 	FILE *ptr = fopen(strcat(nomeArq, ".dat"), "rb");
 	
-	fread(&reg, sizeof(TpReg), 1, ptr);
-	while(!feof(ptr)){
-		gravaInformacao(&p, reg.lin, reg.col, reg.campo);
+	if(ptr == NULL){
+		textcolor(15);          
+	    textbackground(4);
+		gotoxy(1, 3);            		
+	    printf("Erro ao abrir o arquivo. Certifique-se que ele existe!\n");
+	}
+	else{
+		for(i=0; i<100; i++){
+			for(j='A'; j<'Z'; j++){
+				gravaInformacao(&p, i, j, "");
+			}
+		}
 		
 		fread(&reg, sizeof(TpReg), 1, ptr);
+		while(!feof(ptr)){
+			gravaInformacao(&p, reg.lin, reg.col, reg.campo);
+			
+			fread(&reg, sizeof(TpReg), 1, ptr);
+		}
+		fclose(ptr);	
 	}
-	fclose(ptr);
 }
 
 void gravarPlanilhaArquivo(Planilha *p, char nomeArq[]){
